@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { TrainingAccuracyResultModal } from "@/components/training-accuracy-result-modal"
+import { InferenceAccuracyResultModal } from "@/components/inference-accuracy-result-modal"
 
 type AccuracyTest = {
   id: string
@@ -31,6 +32,13 @@ type AccuracyTest = {
   commitId: string
   baselineComparison: string
   testDetails: string
+  // 新增字段
+  baselineOutputTensor?: string
+  testOutputTensor?: string
+  taskType?: string
+  metric?: string
+  threshold?: string
+  actualValue?: string
 }
 
 const mockAccuracyTests: AccuracyTest[] = [
@@ -49,7 +57,13 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "main",
     commitId: "jkl012",
     baselineComparison: "基线 1",
-    testDetails: "测试通过: Loss相对误差1.5%, 阈值2%"
+    testDetails: "测试通过: Loss相对误差1.5%, 阈值2%",
+    taskType: "文本分类",
+    metric: "相对误差",
+    threshold: "<=2%",
+    actualValue: "1.5%",
+    baselineOutputTensor: "tensor([0.1, 0.2, 0.7])",
+    testOutputTensor: "tensor([0.09, 0.21, 0.7])"
   },
   {
     id: "2",
@@ -131,8 +145,15 @@ export function AccuracyTestHistory() {
           ))}
         </TableBody>
       </Table>
-      {selectedTest && (
+      {selectedTest && selectedTest.type === "training" && (
         <TrainingAccuracyResultModal
+          isOpen={!!selectedTest}
+          onClose={() => setSelectedTest(null)}
+          test={selectedTest}
+        />
+      )}
+      {selectedTest && selectedTest.type === "inference" && (
+        <InferenceAccuracyResultModal
           isOpen={!!selectedTest}
           onClose={() => setSelectedTest(null)}
           test={selectedTest}
