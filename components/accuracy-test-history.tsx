@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { TrainingAccuracyResultModal } from "@/components/training-accuracy-result-modal"
 
 type AccuracyTest = {
   id: string
@@ -49,7 +49,7 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "main",
     commitId: "jkl012",
     baselineComparison: "基线 1",
-    testDetails: "准确率提高了 2.5%..."
+    testDetails: "测试通过: Loss相对误差1.5%, 阈值2%"
   },
   {
     id: "2",
@@ -66,7 +66,7 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "feature/accuracy-boost",
     commitId: "mno345",
     baselineComparison: "基线 2",
-    testDetails: "测试由于收敛问题而失败..."
+    testDetails: "测试失败: Loss相对误差3%, 阈值2%"
   },
   {
     id: "3",
@@ -83,12 +83,12 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "hotfix/inference-accuracy",
     commitId: "pqr678",
     baselineComparison: "基线 3",
-    testDetails: "在推理速度提高 30% 的情况下保持了准确率..."
+    testDetails: "测试通过: Loss相对误差1.2%, 阈值2%"
   },
 ]
 
 export function AccuracyTestHistory() {
-  const [selectedDetails, setSelectedDetails] = useState<string | null>(null)
+  const [selectedTest, setSelectedTest] = useState<AccuracyTest | null>(null)
 
   return (
     <>
@@ -107,7 +107,7 @@ export function AccuracyTestHistory() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {mockAccuracyTests.slice(0, 3).map((test) => (
+          {mockAccuracyTests.map((test) => (
             <TableRow key={test.id}>
               <TableCell>{test.startTime}</TableCell>
               <TableCell>{test.endTime}</TableCell>
@@ -123,7 +123,7 @@ export function AccuracyTestHistory() {
               <TableCell>{test.commitId}</TableCell>
               <TableCell>{test.baselineComparison}</TableCell>
               <TableCell>
-                <Button variant="link" onClick={() => setSelectedDetails(test.testDetails)}>
+                <Button variant="link" onClick={() => setSelectedTest(test)}>
                   查看详情
                 </Button>
               </TableCell>
@@ -131,16 +131,13 @@ export function AccuracyTestHistory() {
           ))}
         </TableBody>
       </Table>
-      <Dialog open={!!selectedDetails} onOpenChange={() => setSelectedDetails(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>测试详情</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto max-h-96">
-            {selectedDetails}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedTest && (
+        <TrainingAccuracyResultModal
+          isOpen={!!selectedTest}
+          onClose={() => setSelectedTest(null)}
+          test={selectedTest}
+        />
+      )}
     </>
   )
 }
