@@ -13,6 +13,7 @@ import { AccuracyTestHistory } from "./accuracy-test-history"
 import { UsabilityTestHistory } from "./usability-test-history"
 import { AccuracyTestModal } from "./accuracy-test-modal"
 import { UsabilityTestModal } from "./usability-test-modal"
+import { ModelBaselineComponent } from './model-baseline'
 
 const modelReadme = `
 # LLaMA 3
@@ -235,6 +236,7 @@ export function ModelPage() {
           <TabsTrigger value="code">代码</TabsTrigger>
           <TabsTrigger value="settings">设置</TabsTrigger>
           <TabsTrigger value="tests">测试</TabsTrigger>
+          <TabsTrigger value="baselines">基线管理</TabsTrigger>
         </TabsList>
         <TabsContent value="introduction">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -363,6 +365,17 @@ print(generated_text)`}
                 
                 </AccordionItem>
               </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="baselines">
+          <Card>
+            <CardHeader>
+              <CardTitle>基线管理</CardTitle>
+              <CardDescription>管理模型的基线数据</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ModelBaselineComponent />
             </CardContent>
           </Card>
         </TabsContent>
