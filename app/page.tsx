@@ -1,5 +1,5 @@
-import { ModelTestingPageComponent } from "@/components/model-testing-page"
+import { ModelPage } from "@/components/model-page"
 
 export default function Page() {
-  return <ModelTestingPageComponent />
+  return <ModelPage />
 }

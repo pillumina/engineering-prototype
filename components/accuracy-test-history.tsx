@@ -1,6 +1,4 @@
-'use client'
-
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import {
   Table,
   TableBody,
@@ -10,8 +8,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { TrainingAccuracyResultModal } from "@/components/training-accuracy-result-modal"
-import { InferenceAccuracyResultModal } from "@/components/inference-accuracy-result-modal"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { TrainingTestDetails } from "./training-test-details"
+import { InferenceTestDetails } from "./inference-test-details"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 type AccuracyTest = {
   id: string
@@ -31,14 +32,7 @@ type AccuracyTest = {
   branch: string
   commitId: string
   baselineComparison: string
-  testDetails: string
-  // 新增字段
-  baselineOutputTensor?: string
-  testOutputTensor?: string
-  taskType?: string
-  metric?: string
-  threshold?: string
-  actualValue?: string
+  testDetails: any // This will be different for inference and training
 }
 
 const mockAccuracyTests: AccuracyTest[] = [
@@ -57,13 +51,17 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "main",
     commitId: "jkl012",
     baselineComparison: "基线 1",
-    testDetails: "测试通过: Loss相对误差1.5%, 阈值2%",
-    taskType: "文本分类",
-    metric: "相对误差",
-    threshold: "<=2%",
-    actualValue: "1.5%",
-    baselineOutputTensor: "tensor([0.1, 0.2, 0.7])",
-    testOutputTensor: "tensor([0.09, 0.21, 0.7])"
+    testDetails: {
+      baselineTensor: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
+      currentTensor: [[0.11, 0.21, 0.31], [0.41, 0.51, 0.61]],
+      taskType: "文本分类",
+      metric: "准确率",
+      metricValue: 0.95,
+      threshold: {
+        operator: ">=",
+        value: 0.9
+      }
+    }
   },
   {
     id: "2",
@@ -80,7 +78,16 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "feature/accuracy-boost",
     commitId: "mno345",
     baselineComparison: "基线 2",
-    testDetails: "测试失败: Loss相对误差3%, 阈值2%"
+    testDetails: {
+      baselineLossCurve: Array.from({ length: 5000 }, () => Math.random()),
+      currentLossCurve: Array.from({ length: 5000 }, () => Math.random()),
+      lossRelativeError: 0.15,
+      threshold: {
+        operator: "<=",
+        value: 0.1
+      },
+      dataset: "MNIST",
+    }
   },
   {
     id: "3",
@@ -97,15 +104,57 @@ const mockAccuracyTests: AccuracyTest[] = [
     branch: "hotfix/inference-accuracy",
     commitId: "pqr678",
     baselineComparison: "基线 3",
-    testDetails: "测试通过: Loss相对误差1.2%, 阈值2%"
+    testDetails: {
+      baselineTensor: [[0.7, 0.8, 0.9], [1.0, 1.1, 1.2]],
+      currentTensor: [[0.71, 0.81, 0.91], [1.01, 1.11, 1.21]],
+      taskType: "图像分类",
+      metric: "Top-1 准确率",
+      metricValue: 0.88,
+      threshold: {
+        operator: ">=",
+        value: 0.85
+      }
+    }
   },
 ]
 
+// 定义 InferenceTest 类型
+type InferenceTest = Extract<AccuracyTest, { type: "inference" }>;
+
+// 定义 TrainingTest 类型
+type TrainingTest = Extract<AccuracyTest, { type: "training" }>;
+
 export function AccuracyTestHistory() {
   const [selectedTest, setSelectedTest] = useState<AccuracyTest | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleViewDetails = useCallback((test: AccuracyTest) => {
+    try {
+      if (!test) {
+        throw new Error("测试数据不存在")
+      }
+      setSelectedTest(test)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "无法加载测试详情。请稍后再试。")
+      setSelectedTest(null)
+    }
+  }, [])
+
+  const handleCloseDialog = useCallback(() => {
+    setSelectedTest(null)
+    setError(null)
+  }, [])
 
   return (
     <>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>错误</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
@@ -121,12 +170,12 @@ export function AccuracyTestHistory() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {mockAccuracyTests.map((test) => (
+          {mockAccuracyTests.slice(0, 3).map((test) => (
             <TableRow key={test.id}>
               <TableCell>{test.startTime}</TableCell>
               <TableCell>{test.endTime}</TableCell>
-              <TableCell>{test.type}</TableCell>
-              <TableCell>{test.status}</TableCell>
+              <TableCell>{test.type === "inference" ? "推理" : "训练"}</TableCell>
+              <TableCell>{test.status === "success" ? "成功" : "失败"}</TableCell>
               <TableCell>
                 Python: {test.versions.python}, 
                 Openmind: {test.versions.openmind}, 
@@ -137,7 +186,7 @@ export function AccuracyTestHistory() {
               <TableCell>{test.commitId}</TableCell>
               <TableCell>{test.baselineComparison}</TableCell>
               <TableCell>
-                <Button variant="link" onClick={() => setSelectedTest(test)}>
+                <Button variant="link" onClick={() => handleViewDetails(test)}>
                   查看详情
                 </Button>
               </TableCell>
@@ -145,20 +194,23 @@ export function AccuracyTestHistory() {
           ))}
         </TableBody>
       </Table>
-      {selectedTest && selectedTest.type === "training" && (
-        <TrainingAccuracyResultModal
-          isOpen={!!selectedTest}
-          onClose={() => setSelectedTest(null)}
-          test={selectedTest}
-        />
-      )}
-      {selectedTest && selectedTest.type === "inference" && (
-        <InferenceAccuracyResultModal
-          isOpen={!!selectedTest}
-          onClose={() => setSelectedTest(null)}
-          test={selectedTest}
-        />
-      )}
+      <Dialog open={!!selectedTest} onOpenChange={handleCloseDialog}>
+        <DialogContent className="max-w-3xl">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>错误</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : selectedTest ? (
+            selectedTest.type === "training" ? (
+              <TrainingTestDetails test={selectedTest as TrainingTest} />
+            ) : (
+              <InferenceTestDetails test={selectedTest as InferenceTest} />
+            )
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

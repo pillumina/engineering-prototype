@@ -53,7 +53,13 @@ const taskTypeOptions = [
   { value: "translation", label: "翻译", metric: "BLEU", threshold: ">=0.9" },
 ]
 
-export function AccuracyTestModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface AccuracyTestModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+export function AccuracyTestModal({ isOpen, onClose, onConfirm }: AccuracyTestModalProps) {
   const [testType, setTestType] = useState<TestType>("inference")
   const [runAsBaseline, setRunAsBaseline] = useState(false)
   const [selectedBaseline, setSelectedBaseline] = useState<string>("")
@@ -90,6 +96,7 @@ export function AccuracyTestModal({ isOpen, onClose }: { isOpen: boolean; onClos
       threshold,
       dataset,
     })
+    onConfirm()
     onClose()
   }
 

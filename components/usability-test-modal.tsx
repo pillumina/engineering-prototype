@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button"
 
 type CardOption = "single" | "multi-2" | "multi-4" | "multi-8"
 
-export function UsabilityTestModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface UsabilityTestModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+export function UsabilityTestModal({ isOpen, onClose, onConfirm }: UsabilityTestModalProps) {
   const [pythonVersion, setPythonVersion] = useState<string>("")
   const [openmindVersion, setOpenmindVersion] = useState<string>("")
   const [framework, setFramework] = useState<"MindSpore" | "PyTorch">("MindSpore")
@@ -19,6 +25,7 @@ export function UsabilityTestModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   const handleConfirm = () => {
     console.log("Test configuration:", { pythonVersion, openmindVersion, framework, frameworkVersion, cannVersion, cardOption })
+    onConfirm()  // 调用传入的 onConfirm 函数
     onClose()
   }
 
